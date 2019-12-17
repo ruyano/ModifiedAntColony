@@ -23,19 +23,19 @@ fun createFile(distancias: Array<DoubleArray>) {
     }
 }
 
-fun readFromFile() : Array<DoubleArray>{
-    val finalArray: MutableList<DoubleArray> = ArrayList()
+fun readFromFile() : ArrayList<ArrayList<Double>>{
+    val finalArray = ArrayList<ArrayList<Double>>()
     File(fileName).forEachLine { lineStr ->
-        val line: MutableList<Double> = ArrayList()
+        val line = ArrayList<Double>()
         lineStr.replace("\n","")
         lineStr.split(" ").forEach { number ->
             if (number.isNotBlank()) {
                 line.add(number.toDouble())
             }
         }
-        finalArray.add(line.toDoubleArray())
+        finalArray.add(line)
     }
-    return finalArray.toTypedArray()
+    return finalArray
 }
 
 private fun criaDistancias() {

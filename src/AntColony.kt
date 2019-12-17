@@ -1,42 +1,59 @@
+import objects.Anty
+import operators.Operator
+import operators.crossover.Crossover
+import operators.mutation.Mutation
+import operators.selection.Selection
 import org.jfree.chart.ChartFactory
 import org.jfree.chart.ChartPanel
 import org.jfree.chart.plot.PlotOrientation
 import org.jfree.data.xy.XYSeries
 import org.jfree.data.xy.XYSeriesCollection
 import java.lang.Math.pow
-import java.lang.System.arraycopy
-import java.lang.System.out
-
 import java.util.LinkedHashMap
-import java.util.Random
 import javax.swing.JFrame
+import kotlin.random.Random
 
-object CaixeiroViajanteFormigas {
+class AntColony (
+        val epochsNumber: Int = 50,
+        val numFormigas: Int = 100,
+        val crossOverAmount: Int = numFormigas / 4,
+        val selectionMethod: Selection,
+        val crossoverMethod: Crossover,
+        val mutation: Mutation,
+        val alpha: Double = 8.0, // peso do feromonio
+        val beta: Double = 2.0, // peso da distancia
+        val reducaoFeromonio: Double = 0.1, // 10% de perda de
+        val aumentoFeromonio: Double = 1.0, // 200% de ganho de
+        val shouldPrint : Boolean = false
+) : Operator(shouldPrint) {
+
+    private var formigas = ArrayList<Anty>()
     private var numCidades = 150
-    private val numFormigas = 1
-    private val epoch = 50
-    private val alpha = 3.0 // peso do feromonio
-    private val beta = 2.0 // peso da distancia
-    private val reducaoFeromonio = 0.1 // 10% de perda de
-    private val aumentoFeromonio = 1.0 // 200% de ganho de
-    private var distancias: Array<DoubleArray>? = null
-    private var formigas: Array<IntArray>? = null
+    private var distancias = ArrayList<ArrayList<Double>>()
     private var feromonios: Array<DoubleArray>? = null
-    private var melhorRota: IntArray? = null
+    private var results: MutableMap<Int, Double> = LinkedHashMap()
     private var melhorDistancia: Double = 0.0
-    private val random = Random(System.currentTimeMillis())
-    private var resultados: MutableMap<Int, Double>? = null
+    private var melhorFormiga: Anty? = null
 
-    @JvmStatic
-    fun main(args: Array<String>) {
+    init {
         readDistanciasFromFile()
         imprimeTabelaDistancias()
         distribuiFormigas()
         inicializaFeromonios()
-        for (i in 0 until epoch) {
+        selectionMethod.setPopulation(formigas)
+    }
+
+    fun execute() {
+        for (i in 0 until epochsNumber) {
+            if (!shouldPrint) {
+                println(i)
+            }
+            myPrint("Formigas iniciais na epoca $i:")
+            imprimeFormigas()
             atualizaFeromonios()
             if (i > 0) {
                 atualizaRotasFormigas()
+                executeGeneration(i)
             }
             melhorRota()
             printMelhorRota(i)
@@ -45,61 +62,89 @@ object CaixeiroViajanteFormigas {
         apresentaGrafico()
     }
 
-    fun printMelhorRota(epoca: Int) {
-        println()
-        print("Melhor rota da epoca $epoca = ")
-        melhorRota?.forEach {
-            print("$it ")
+    private fun melhorRota() {
+        myPrint("Formigas para selecionar a melhor:")
+        imprimeFormigas()
+        for (i in 0 until numFormigas) {
+            val dist = formigas[i].totalDistance()
+            if (melhorDistancia == 0.0 || dist < melhorDistancia) {
+                melhorFormiga = Anty(distancias, formigas[i].genes)
+                melhorDistancia = dist
+            }
         }
-        print(" distancia = $melhorDistancia")
+    }
+
+    fun printMelhorRota(epoca: Int) {
+        println("Melhor rota da epoca $epoca = ")
+        println(melhorFormiga.toString())
+        println(" distancia = $melhorDistancia")
+    }
+
+    private fun armazenaResultados(numViagem: Int) {
+        melhorFormiga?.let {
+            results[numViagem + 1] = it.totalDistance()
+        }
+    }
+
+    private fun executeGeneration(i: Int) {
+        for (j in 0 until crossOverAmount) {
+            generateSons()
+        }
+        oderPopulationByFitness()
+        myPrint("Formigas ordenadas")
+        imprimeFormigas()
+        selectNextPopulation()
+        myPrint("Formigas Para a geracao")
+        imprimeFormigas()
+    }
+
+    private fun selectNextPopulation() {
+        val bests = formigas.dropLast(crossOverAmount * 2)
+        formigas.clear()
+        formigas.addAll(bests.shuffled())
+    }
+
+    private fun oderPopulationByFitness() {
+        formigas.sortByDescending {
+            it.fitness()
+        }
+    }
+
+    private fun generateSons() {
+        val father1 = selectionMethod.select()
+        val father2 = selectionMethod.select()
+        father1?.let { f1 ->
+            father2?.let { f2 ->
+                val sons = crossoverMethod.execute(f1, f2)
+                sons.forEach {
+                    formigas.add(mutation.mutate(it))
+                }
+            }
+        }
     }
 
     private fun readDistanciasFromFile() {
         distancias = readFromFile()
-        numCidades = distancias!!.size
+        numCidades = distancias.size
     }
 
     private fun distribuiFormigas() {
-        formigas = Array(numFormigas) { IntArray(numCidades + 1) }
+        var i = 0
         for (i in 0 until numFormigas) {
-            for (j in 0 until numCidades) {
-                formigas!![i][j] = j
-            }
+            formigas.add(Anty(distancias))
         }
-        out.printf(formigas!!.toString())
-        for (i in 0 until numFormigas) {
-            for (j in 0 until numCidades) {
-                val dest = random.nextInt(numCidades)
-                if (dest != j) {
-                    val aux = formigas!![i][j]
-                    formigas!![i][j] = formigas!![i][dest]
-                    formigas!![i][dest] = aux
-                }
-            }
-            formigas!![i][numCidades] = formigas!![i][0] // volta para o inicio
-        }
-        out.printf(formigas!!.toString())
+        myPrint("Formigas iniciais")
+        imprimeFormigas()
     }
 
-    private fun distanciaPercorrida(cidades: IntArray): Double {
-        var ret = 0.0
-        for (i in 0 until cidades.size - 1) {
-            ret += distancias!![cidades[i]][cidades[i + 1]]
-        }
-        return ret
-    }
-
-    private fun melhorRota() {
-        for (i in 0 until numFormigas) {
-            val dist = distanciaPercorrida(formigas!![i])
-            if (melhorDistancia == 0.0 || dist < melhorDistancia) {
-                if (melhorRota == null) {
-                    melhorRota = IntArray(numCidades + 1)
-                }
-                melhorDistancia = dist
-                arraycopy(formigas!![i], 0, melhorRota!!, 0, formigas!![i].size)
+    private fun isArraysEquals(array1: ArrayList<Int>, array2: ArrayList<Int>): Boolean {
+        if (array1.size != array2.size) return false
+        array1.forEachIndexed{index, value ->
+            if (value != array2[index]) {
+                return false
             }
         }
+        return true
     }
 
     private fun inicializaFeromonios() {
@@ -115,23 +160,25 @@ object CaixeiroViajanteFormigas {
         for (i in 0 until numFormigas) {
             // cidade atual da formiga
             // int cidade = formigas[i][numCidades - 1];
-            val cidade = random.nextInt(numCidades)
-            formigas?.set(i, geraNovaRota(cidade))
+            val cidade = Random.nextInt(numCidades)
+//            val cidade = 0
+            val anty = Anty(distancias, geraNovaRota(cidade))
+            formigas[i] = anty
         }
     }
 
-    private fun geraNovaRota(inicio: Int): IntArray {
+    private fun geraNovaRota(inicio: Int): ArrayList<Int> {
         val visitadas = BooleanArray(numCidades)
-        val novaRota = IntArray(numCidades + 1)
-        novaRota[0] = inicio
+        val novaRota = ArrayList<Int>()
+        novaRota.add(inicio)
         visitadas[inicio] = true
         for (i in 0 until numCidades - 1) {
             val origem = novaRota[i]
             val destino = proximaCidade(origem, visitadas)
-            novaRota[i + 1] = destino
+            novaRota.add(destino)
             visitadas[destino] = true
         }
-        novaRota[numCidades] = novaRota[0]
+        novaRota.add(novaRota[0])
         return novaRota
     }
 
@@ -151,7 +198,7 @@ object CaixeiroViajanteFormigas {
         for (i in 0 until numCidades) {
             acum[i + 1] = acum[i] + aux[i]
         }
-        val p = random.nextDouble()
+        val p = Random.nextDouble()
 
         for (i in 0 until acum.size - 1) {
             if (p >= acum[i] && p < acum[i + 1]) {
@@ -168,10 +215,10 @@ object CaixeiroViajanteFormigas {
                     continue
                 }
                 for (f in 0 until numFormigas) {
-                    val dist = distanciaPercorrida(formigas!![f])
+                    val dist = formigas[f].totalDistance()
                     val reducao = feromonios!![i][j] * (1 - reducaoFeromonio)
                     var aumento = 0.0
-                    if (formigaFezCaminho(f, i, j)) {
+                    if (formigaFezCaminho(formigas[f], i, j)) {
                         aumento = aumentoFeromonio / dist
                     }
                     feromonios!![i][j] = reducao + aumento
@@ -183,18 +230,18 @@ object CaixeiroViajanteFormigas {
         }
     }
 
-    private fun formigaFezCaminho(formiga: Int, origem: Int, destino: Int): Boolean {
+    private fun formigaFezCaminho(formiga: Anty, origem: Int, destino: Int): Boolean {
         if (origem == destino) {
             return false
         }
-        for (i in 0 until numCidades + 1) {
-            if (origem == formigas!![formiga][i]) {
-                if (i == 0 && formigas!![formiga][i + 1] == destino) {
+        formiga.genes.forEachIndexed { i, gene ->
+            if (origem == gene) {
+                if (i == 0 && formiga.genes[i+1] == destino) {
                     return true
-                } else if (i == numCidades - 1 && formigas!![formiga][i - 1] == destino) {
+                } else if (i ==  numCidades -1 && formiga.genes[i-1] == destino) {
                     return true
-                } else if (i > 0 && i < numCidades - 1) {
-                    if (formigas!![formiga][i - 1] == destino || formigas!![formiga][i + 1] == destino) {
+                } else if (i > 0 && i < numCidades -1) {
+                    if (formiga.genes[i-1] == destino || formiga.genes[i+1] == destino) {
                         return true
                     }
                 }
@@ -204,14 +251,16 @@ object CaixeiroViajanteFormigas {
         return false
     }
 
-    private fun armazenaResultados(numViagem: Int) {
-        if (resultados == null) {
-            resultados = LinkedHashMap()
+    private fun imprimeFormigas() {
+        formigas.forEach {
+            myPrint("$it")
         }
-        resultados!![numViagem + 1] = distanciaPercorrida(melhorRota!!)
     }
 
     private fun imprimeTabelaDistancias() {
+        if (!shouldPrint) {
+            return
+        }
         println("Distancias:")
         print("----")
         for (i in 0 until numCidades) {
@@ -246,8 +295,8 @@ object CaixeiroViajanteFormigas {
         val jf = JFrame("Epoca X melhor distância")
         jf.defaultCloseOperation = JFrame.DISPOSE_ON_CLOSE
         val xy = XYSeries("Melhor distância")
-        for (v in resultados!!.keys) {
-            xy.add(v, resultados!![v])
+        for (v in results.keys) {
+            xy.add(v, results[v])
         }
         val col = XYSeriesCollection(xy)
         val jfc = ChartFactory.createXYLineChart("Epoca X melhor distância", "Epoca", "Distância", col, PlotOrientation.VERTICAL,
