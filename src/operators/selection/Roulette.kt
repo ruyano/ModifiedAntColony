@@ -1,11 +1,11 @@
 package operators.selection
 
-import objects.Anty
+import objects.Ant
 import kotlin.random.Random
 
 class Roulette(shouldPrint: Boolean = false) : Selection(shouldPrint) {
 
-    override fun select(): Anty? {
+    override fun select(): Ant? {
         var fitnessSum = 0.0
         var probabilidadeTotal = 0.0
 

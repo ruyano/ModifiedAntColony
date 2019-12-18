@@ -2,7 +2,7 @@ package objects
 
 import kotlin.random.Random
 
-data class Anty(
+data class Ant(
     val distanceMatrix: ArrayList<ArrayList<Double>>,
     var genes: ArrayList<Int> = ArrayList(),
     var selectionProbability: Double = 0.0

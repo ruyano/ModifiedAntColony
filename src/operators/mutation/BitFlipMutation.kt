@@ -1,6 +1,6 @@
 package operators.mutation
 
-import objects.Anty
+import objects.Ant
 import java.util.*
 import kotlin.random.Random
 
@@ -9,17 +9,17 @@ class BitFlipMutation(
     val shouldPrint: Boolean = false
 ) : Mutation(mutationRate, shouldPrint) {
 
-    override fun mutate(anty: Anty) : Anty {
+    override fun mutate(ant: Ant) : Ant {
 
-        myPrint("Sujeito para mutação: $anty")
+        myPrint("Sujeito para mutação: $ant")
 
         val shouldMudate = Random.nextDouble(1.0)
         if (shouldMudate > mutationRate) {
             myPrint("Não mutou")
-            return anty
+            return ant
         }
 
-        val genes = anty.genes.dropLast(1)
+        val genes = ant.genes.dropLast(1)
         val firstPositionToMutate = Random.nextInt(genes.size)
         var secondPositionToMutate = Random.nextInt(genes.size)
 
@@ -35,12 +35,12 @@ class BitFlipMutation(
 
         myPrint("depois da mutação: $genes")
 
-        anty.genes.clear()
-        anty.genes.addAll(genes)
-        anty.genes.add(genes[0])
+        ant.genes.clear()
+        ant.genes.addAll(genes)
+        ant.genes.add(genes[0])
 
-        myPrint("Sujeito depois da mutação: $anty")
+        myPrint("Sujeito depois da mutação: $ant")
 
-        return anty
+        return ant
     }
 }

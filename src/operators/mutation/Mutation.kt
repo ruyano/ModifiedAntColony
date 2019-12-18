@@ -1,10 +1,10 @@
 package operators.mutation
 
-import objects.Anty
+import objects.Ant
 import operators.Operator
 
 abstract class Mutation(mutationRate: Double, shouldPrint: Boolean) : Operator(shouldPrint) {
 
-    abstract fun mutate(anty: Anty) : Anty
+    abstract fun mutate(ant: Ant) : Ant
 
 }

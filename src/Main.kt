@@ -14,10 +14,11 @@ object Main {
                 selectionMethod = Roulette(false),
                 crossoverMethod = PMX(false),
                 mutation = BitFlipMutation(0.1,false),
-                alpha = 3.0,
-                beta = 2.0,
+                alpha = 9.0,
+                beta = 1.0,
                 reducaoFeromonio = 0.1,
-                aumentoFeromonio = 1.0
+                aumentoFeromonio = 1.0,
+                shouldPrint = false
         ).execute()
 
     }

@@ -1,4 +1,4 @@
-import objects.Anty
+import objects.Ant
 import operators.Operator
 import operators.crossover.Crossover
 import operators.mutation.Mutation
@@ -27,13 +27,13 @@ class AntColony (
         val shouldPrint : Boolean = false
 ) : Operator(shouldPrint) {
 
-    private var formigas = ArrayList<Anty>()
+    private var formigas = ArrayList<Ant>()
     private var numCidades = 150
     private var distancias = ArrayList<ArrayList<Double>>()
     private var feromonios: Array<DoubleArray>? = null
     private var results: MutableMap<Int, Double> = LinkedHashMap()
     private var melhorDistancia: Double = 0.0
-    private var melhorFormiga: Anty? = null
+    private var melhorFormiga: Ant? = null
 
     init {
         readDistanciasFromFile()
@@ -50,10 +50,10 @@ class AntColony (
             }
             myPrint("Formigas iniciais na epoca $i:")
             imprimeFormigas()
+            executeGeneration(i)
             atualizaFeromonios()
             if (i > 0) {
                 atualizaRotasFormigas()
-                executeGeneration(i)
             }
             melhorRota()
             printMelhorRota(i)
@@ -68,7 +68,7 @@ class AntColony (
         for (i in 0 until numFormigas) {
             val dist = formigas[i].totalDistance()
             if (melhorDistancia == 0.0 || dist < melhorDistancia) {
-                melhorFormiga = Anty(distancias, formigas[i].genes)
+                melhorFormiga = Ant(distancias, formigas[i].genes)
                 melhorDistancia = dist
             }
         }
@@ -131,7 +131,7 @@ class AntColony (
     private fun distribuiFormigas() {
         var i = 0
         for (i in 0 until numFormigas) {
-            formigas.add(Anty(distancias))
+            formigas.add(Ant(distancias))
         }
         myPrint("Formigas iniciais")
         imprimeFormigas()
@@ -158,12 +158,9 @@ class AntColony (
 
     private fun atualizaRotasFormigas() {
         for (i in 0 until numFormigas) {
-            // cidade atual da formiga
-            // int cidade = formigas[i][numCidades - 1];
             val cidade = Random.nextInt(numCidades)
-//            val cidade = 0
-            val anty = Anty(distancias, geraNovaRota(cidade))
-            formigas[i] = anty
+            val ant = Ant(distancias, geraNovaRota(cidade))
+            formigas[i] = ant
         }
     }
 
@@ -230,7 +227,7 @@ class AntColony (
         }
     }
 
-    private fun formigaFezCaminho(formiga: Anty, origem: Int, destino: Int): Boolean {
+    private fun formigaFezCaminho(formiga: Ant, origem: Int, destino: Int): Boolean {
         if (origem == destino) {
             return false
         }

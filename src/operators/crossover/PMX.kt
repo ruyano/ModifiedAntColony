@@ -1,13 +1,13 @@
 package operators.crossover
 
-import objects.Anty
+import objects.Ant
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.random.Random
 
 class PMX(shouldPrint: Boolean = false) : Crossover(shouldPrint) {
 
-    override fun execute(father1: Anty, father2: Anty): ArrayList<Anty> {
+    override fun execute(father1: Ant, father2: Ant): ArrayList<Ant> {
 
         myPrint("Crossover com:\npai 1 = $father1\npai2 = $father2")
 
@@ -36,7 +36,7 @@ class PMX(shouldPrint: Boolean = false) : Crossover(shouldPrint) {
         myPrint("Filho 1 = $son1")
         myPrint("Filho 2 = $son2")
 
-        val sons = ArrayList<Anty>()
+        val sons = ArrayList<Ant>()
         sons.add(son1)
         sons.add(son2)
         return sons
@@ -45,9 +45,9 @@ class PMX(shouldPrint: Boolean = false) : Crossover(shouldPrint) {
     private fun geraFilho(
             firstCut: Int,
             secondCut: Int,
-            receptorFather: Anty,
-            donorFather: Anty
-    ): Anty {
+            receptorFather: Ant,
+            donorFather: Ant
+    ): Ant {
         val sonGenes = ArrayList<Int>()
         sonGenes.addAll(receptorFather.genes.dropLast(1))
         for (index in firstCut..secondCut) {
@@ -55,7 +55,7 @@ class PMX(shouldPrint: Boolean = false) : Crossover(shouldPrint) {
             Collections.swap(sonGenes, sonGenes.indexOf(newVal), index)
         }
         sonGenes.add(sonGenes[0])
-        return Anty(receptorFather.distanceMatrix, sonGenes)
+        return Ant(receptorFather.distanceMatrix, sonGenes)
     }
 
 }
